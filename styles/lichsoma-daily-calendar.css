@@ -1,0 +1,392 @@
+/* lichsoma-daily-calendar.css */
+/* lichsoma-time-and-weather에서 시간/캘린더 관련 스타일만 분리 (weather 관련 제거) */
+
+/* ============================================================
+ * 캘린더 (좌측 상단 표시)
+ * 폰트: 모듈 설정(calendarFont) → JS가 --ldc-calendar-font-family 설정 (lichsoma-nameplate와 동일 원리)
+ * ============================================================ */
+
+#lichsoma-daily-calendar-container {
+  margin-bottom: 0.5rem;
+  pointer-events: auto;
+  font-family: var(--ldc-calendar-font-family, var(--font-primary, sans-serif));
+  font-weight: bolder;
+  font-synthesis: weight style;
+}
+
+/* 자식 요소들이 Foundry/다른 모듈의 글로벌 스타일로 덮어써져
+   부모 font-family를 못 받는 경우가 많아, 직접 강제 지정한다.
+   .lichsoma-calendar-time-icon(폰트어썸 아이콘)은 자체 font-family를 유지해야 하므로 제외. */
+#lichsoma-daily-calendar-container .lichsoma-calendar-panel,
+#lichsoma-daily-calendar-container .lichsoma-calendar-content,
+#lichsoma-daily-calendar-container .lichsoma-calendar-body,
+#lichsoma-daily-calendar-container .lichsoma-calendar-row,
+#lichsoma-daily-calendar-container .lichsoma-calendar-date,
+#lichsoma-daily-calendar-container .lichsoma-calendar-weekday,
+#lichsoma-daily-calendar-container .lichsoma-calendar-weekday-text {
+  font-family: var(--ldc-calendar-font-family, var(--font-primary, sans-serif)) !important;
+  font-synthesis: weight style !important;
+}
+
+#lichsoma-daily-calendar-container .lichsoma-calendar-row {
+  grid-template-columns: 1fr;
+}
+
+#lichsoma-daily-calendar-container .lichsoma-calendar-btn {
+  display: none;
+}
+
+#lichsoma-daily-calendar-container .lichsoma-calendar-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#lichsoma-daily-calendar-container .lichsoma-calendar-content {
+  width: 100%;
+}
+
+#lichsoma-daily-calendar-container .lichsoma-calendar-body {
+  gap: 8px;
+}
+
+#lichsoma-daily-calendar-container .lichsoma-calendar-row {
+  justify-items: center;
+}
+
+.lichsoma-calendar-panel {
+  position: relative;
+  width: 100%;
+  max-width: 200px;
+  min-height: 72px;
+  box-sizing: border-box;
+  background: var(--color-cool-5-75);
+  border: 1px solid var(--control-border-color);
+  border-radius: 4px;
+  opacity: 0.4;
+  transition: opacity 0.5s ease-in-out;
+  padding: 0px;
+}
+
+.lichsoma-calendar-panel:hover {
+  opacity: 1;
+}
+
+.lichsoma-calendar-fade-out {
+  opacity: 0 !important;
+}
+
+.lichsoma-calendar-content {
+  padding: 4px;
+  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out, filter 0.5s ease-in-out;
+}
+
+.lichsoma-calendar-content.lichsoma-calendar-fade-out {
+  opacity: 0 !important;
+  transform: scale(0.985);
+  filter: blur(0.6px);
+}
+
+.lichsoma-calendar-time-wrap {
+  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out, filter 0.5s ease-in-out;
+}
+
+.lichsoma-calendar-time-wrap.lichsoma-calendar-fade-out {
+  opacity: 0 !important;
+  transform: scale(0.985);
+  filter: blur(0.6px);
+}
+
+.lichsoma-calendar-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+}
+
+.lichsoma-calendar-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 18px 1fr 18px;
+  align-items: center;
+  column-gap: 6px;
+}
+
+.lichsoma-calendar-btn {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: var(--control-icon-color);
+  cursor: pointer;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.lichsoma-calendar-row:not(.lichsoma-calendar-row-readonly):hover .lichsoma-calendar-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lichsoma-calendar-btn:hover:not(:disabled) {
+  color: var(--control-icon-color);
+}
+
+.lichsoma-calendar-btn:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lichsoma-calendar-date,
+.lichsoma-calendar-weekday {
+  text-align: center;
+}
+
+.lichsoma-calendar-date {
+  font-size: 16px;
+  line-height: 1.15;
+  color: var(--control-icon-color);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: bolder;
+}
+
+.lichsoma-calendar-weekday {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--control-icon-color);
+  user-select: none;
+  white-space: nowrap;
+  font-weight: bolder;
+}
+
+.lichsoma-calendar-time-icon {
+  font-size: 12px;
+}
+
+.lichsoma-calendar-time-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* ============================================================
+ * 시간/일자 컨트롤 패널 (우측 하단 토글)
+ * ============================================================ */
+
+.ldc-panel {
+  position: fixed;
+  bottom: var(--taskbar-height, 45px);
+  right: 10px;
+  width: auto;
+  background-color: var(--taskbar-color, #0B0A13);
+  opacity: var(--taskbar-opacity, 1);
+  border: 0px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  transition: opacity 0.2s, transform 0.2s;
+  margin-bottom: 5px;
+  padding: 12px;
+}
+
+.ldc-panel.hidden {
+  opacity: 0 !important;
+  pointer-events: none;
+  transform: translateY(10px);
+}
+
+.ldc-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ldc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ldc-section-title {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ldc-time-heading-simple .ldc-section-title {
+  margin: 0;
+}
+
+.ldc-time-heading-calendar {
+  display: none;
+  grid-template-columns: 28px 1fr 28px;
+  align-items: center;
+  column-gap: 6px;
+}
+
+.ldc-section-time.ldc-calendar-active .ldc-time-heading-simple {
+  display: none;
+}
+
+.ldc-section-time.ldc-calendar-active .ldc-time-heading-calendar {
+  display: grid;
+}
+
+.ldc-time-heading-calendar .ldc-section-title {
+  margin: 0;
+  padding-bottom: 4px;
+}
+
+.ldc-nav-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  outline: none;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.75);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ldc-nav-btn:hover:not(:disabled) {
+  color: #ffbb00;
+}
+
+.ldc-nav-btn:disabled {
+  opacity: 0.45;
+}
+
+.ldc-nav-btn i {
+  font-size: 12px;
+}
+
+.ldc-time-buttons-wrap .ldc-prev-time,
+.ldc-time-buttons-wrap .ldc-next-time {
+  display: none;
+}
+
+.ldc-section-time.ldc-calendar-active .ldc-time-buttons-wrap .ldc-prev-time,
+.ldc-section-time.ldc-calendar-active .ldc-time-buttons-wrap .ldc-next-time {
+  display: inline-flex;
+}
+
+.ldc-time-buttons-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ldc-buttons {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ldc-time-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s;
+  cursor: default !important;
+}
+
+.ldc-time-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ldc-time-btn.active {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.ldc-time-btn[data-time-of-day='morning'].active {
+  background: rgba(255, 223, 0, 0.3);
+  border-color: rgba(255, 223, 0, 0.5);
+}
+
+.ldc-time-btn[data-time-of-day='afternoon'].active {
+  background: rgba(255, 140, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.5);
+}
+
+.ldc-time-btn[data-time-of-day='latenight'].active {
+  background: rgba(100, 100, 255, 0.3);
+  border-color: rgba(100, 100, 255, 0.5);
+}
+
+.ldc-time-btn i {
+  font-size: 20px;
+}
+
+.ldc-time-btn:disabled {
+  cursor: not-allowed;
+}
+
+/* ============================================================
+ * 시간대 오버레이 (afternoon/latenight)
+ * ============================================================ */
+
+.ldc-time-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+.ldc-time-overlay.visible {
+  opacity: 0.75;
+}
+
+.ldc-time-overlay-afternoon {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 160, 90, 0.22) 0%,
+    rgba(200, 70, 25, 0.45) 62%,
+    rgba(80, 20, 12, 0.82) 85%
+  );
+}
+
+.ldc-time-overlay-latenight {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(25, 25, 60, 0.3) 0%,
+    rgba(10, 10, 30, 0.7) 75%
+  );
+}

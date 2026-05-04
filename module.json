@@ -1,0 +1,44 @@
+{
+  "id": "lichsoma-daily-calendar",
+  "title": "LichSOMA's Daily Calendar",
+  "description": "A module for tracking morning/afternoon/late-night periods, with optional date management.",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14"
+  },
+  "authors": [
+    {
+      "name": "LichSoma"
+    }
+  ],
+  "esmodules": [
+    "scripts/lichsoma-daily-calendar.js"
+  ],
+  "styles": [
+    "styles/lichsoma-daily-calendar.css"
+  ],
+  "languages": [
+    {
+      "lang": "ko",
+      "name": "Korean",
+      "path": "lang/ko.json"
+    }
+  ],
+  "relationships": {
+    "recommends": [
+      {
+        "id": "lichsoma-taskbar",
+        "type": "module",
+        "compatibility": {
+          "minimum": "2.0.0"
+        }
+      }
+    ]
+  },
+  "url": "https://github.com/LichSOMA/lichsoma-daily-calendar",
+  "manifest": "https://github.com/LichSOMA/lichsoma-daily-calendar/releases/latest/download//module.json",
+  "download": "https://github.com/LichSOMA/lichsoma-daily-calendar/releases/download/1.0.0/lichsoma-daily-calendar-v1.0.0.zip",
+  "license": "https://github.com/LichSOMA/lichsoma-daily-calendar/blob/main/LICENSE",
+  "readme": "https://github.com/LichSOMA/lichsoma-daily-calendar/blob/main/README.md"
+}

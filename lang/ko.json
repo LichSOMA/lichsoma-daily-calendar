@@ -1,0 +1,32 @@
+{
+  "LICHSOMA": {
+    "DAILY_CALENDAR": {
+      "SceneControlTitle": "일자/시간",
+      "NotifyGMOnly": "일자와 시간은 GM만 변경할 수 있습니다.",
+      "EnableCalendar": "캘린더 기능 활성화",
+      "EnableCalendarHint": "캘린더 기능을 활성화하면 좌측 상단에 캘린더가 표시되고, LichSOMA's Taskbar와 날짜를 연동할 수 있습니다.",
+      "BaseCalendarDate": "캘린더 기준 날짜 (YYYY/MM/DD)",
+      "BaseCalendarDateHint": "1일째에 해당하는 날짜를 4자리 연/월/일로 입력하세요. 예: 2000/01/01",
+      "Font": {
+        "Default": "기본 폰트"
+      },
+      "Settings": {
+        "CalendarFont": {
+          "Name": "캘린더 폰트",
+          "Hint": "좌측 상단 캘린더 위젯에 사용할 폰트입니다. 브라우저에 로드된 폰트 목록에서 선택합니다."
+        }
+      },
+      "Panel": {
+        "Time": "시간",
+        "DayCount": "{day}일차",
+        "PrevDay": "이전 날짜",
+        "NextDay": "다음 날짜",
+        "PrevTime": "이전 시간대",
+        "NextTime": "다음 시간대",
+        "Morning": "오전",
+        "Afternoon": "오후",
+        "LateNight": "심야"
+      }
+    }
+  }
+}
