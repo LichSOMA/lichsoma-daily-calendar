@@ -394,9 +394,9 @@ function getTimeIconClass(time) {
 function applyTimeOfDayOverlay(timeOfDay) {
   const oldOverlay = state.timeOverlayElement;
   if (timeOfDay === 'morning') {
-    if (oldOverlay && oldOverlay.classList.contains('visible')) {
-      oldOverlay.classList.remove('visible');
-    }
+    [state.afternoonOverlay, state.latenightOverlay].forEach((el) => {
+      if (el?.classList.contains('visible')) el.classList.remove('visible');
+    });
     state.timeOverlayElement = null;
     return;
   }
@@ -432,10 +432,10 @@ function applyTimeOfDayOverlay(timeOfDay) {
       requestAnimationFrame(() => {
         void newOverlay.getBoundingClientRect();
         requestAnimationFrame(() => {
-          newOverlay.classList.add('visible');
+          if (!newOverlay.classList.contains('visible')) newOverlay.classList.add('visible');
         });
       });
-    } else {
+    } else if (!newOverlay.classList.contains('visible')) {
       requestAnimationFrame(() => {
         newOverlay.classList.add('visible');
       });
