@@ -1,0 +1,209 @@
+/* Palette is local to Daily Calendar. Never change the canvas/time overlays,
+ * the taskbar, or another module's theme. Inheritance takes priority over core. */
+:is(#lichsoma-daily-calendar-container, #ldc-panel, #lichsoma-daily-calendar-webfont-css-editor) {
+  --ldc-widget-bg: rgba(11, 10, 19, 0.75);
+  --ldc-panel-bg: #0b0a13;
+  --ldc-panel-border: rgba(255, 255, 255, 0.18);
+  --ldc-text: rgba(255, 255, 255, 0.85);
+  --ldc-muted: rgba(255, 255, 255, 0.6);
+  --ldc-border: rgba(255, 255, 255, 0.2);
+  --ldc-divider: rgba(255, 255, 255, 0.1);
+  --ldc-button-bg: rgba(255, 255, 255, 0.05);
+  --ldc-hover-bg: rgba(255, 255, 255, 0.1);
+  --ldc-hover-border: rgba(255, 255, 255, 0.3);
+  --ldc-accent: #ffbb00;
+  --ldc-morning-bg: rgba(255, 223, 0, 0.3);
+  --ldc-morning-border: rgba(255, 223, 0, 0.5);
+  --ldc-afternoon-bg: rgba(255, 140, 0, 0.3);
+  --ldc-afternoon-border: rgba(255, 140, 0, 0.5);
+  --ldc-latenight-bg: rgba(100, 100, 255, 0.3);
+  --ldc-latenight-border: rgba(100, 100, 255, 0.5);
+}
+
+/* The mirrored core UI class also reaches the body-mounted date controls.
+ * The editor follows its own core application theme when one is present. */
+body[data-ldc-theme-source="core"][data-ldc-theme="simple"][data-ldc-ui-theme="light"] :is(#lichsoma-daily-calendar-container, #ldc-panel, #lichsoma-daily-calendar-webfont-css-editor:not(:where(.theme-dark))),
+body[data-ldc-theme-source="core"][data-ldc-theme="simple"] #lichsoma-daily-calendar-webfont-css-editor.theme-light {
+  --ldc-widget-bg: rgba(239, 237, 230, 0.85);
+  --ldc-panel-bg: #efede6;
+  --ldc-panel-border: rgba(97, 89, 81, 0.35);
+  --ldc-text: #302b25;
+  --ldc-muted: #615951;
+  --ldc-border: #a69d92;
+  --ldc-divider: rgba(97, 89, 81, 0.25);
+  --ldc-button-bg: rgba(97, 89, 81, 0.06);
+  --ldc-hover-bg: rgba(97, 89, 81, 0.14);
+  --ldc-hover-border: #615951;
+  --ldc-accent: #805515;
+}
+
+/* Both light palettes share semantic time-of-day colors. */
+body[data-ldc-theme="simple"][data-ldc-ui-theme="light"] :is(#lichsoma-daily-calendar-container, #ldc-panel, #lichsoma-daily-calendar-webfont-css-editor:not(:where(.theme-dark))),
+body[data-ldc-theme-source="core"][data-ldc-theme="simple"] #lichsoma-daily-calendar-webfont-css-editor.theme-light,
+body[data-ldc-theme-source="speaker"][data-ldc-ui-theme="light"] #lichsoma-daily-calendar-webfont-css-editor {
+  --ldc-morning-bg: rgba(218, 171, 0, 0.2);
+  --ldc-morning-border: #947600;
+  --ldc-afternoon-bg: rgba(224, 120, 0, 0.18);
+  --ldc-afternoon-border: #a65b00;
+  --ldc-latenight-bg: rgba(88, 88, 174, 0.18);
+  --ldc-latenight-border: #6262a5;
+}
+
+/* Inherited Simple Light uses the Selector's neutral gray palette, even when
+ * core application windows use dark mode. Dark inheritance keeps base tokens. */
+body[data-ldc-theme-source="speaker"][data-ldc-theme="simple"][data-ldc-ui-theme="dark"] :is(#lichsoma-daily-calendar-container, #ldc-panel, #lichsoma-daily-calendar-webfont-css-editor) {
+  --ldc-text: #e8e5df;
+  --ldc-muted: #aba398;
+  --ldc-border: #45424c;
+  --ldc-panel-border: #45424c;
+  --ldc-hover-bg: #403946;
+  --ldc-hover-border: #b59b76;
+  --ldc-accent: #b59b76;
+}
+body[data-ldc-theme-source="speaker"][data-ldc-ui-theme="light"] :is(#lichsoma-daily-calendar-container, #ldc-panel, #lichsoma-daily-calendar-webfont-css-editor) {
+  --ldc-widget-bg: rgba(217, 220, 225, 0.85);
+  --ldc-panel-bg: var(--speaker-light-bg, #cdd1d6);
+  --ldc-panel-border: rgba(98, 107, 120, 0.35);
+  --ldc-text: var(--speaker-light-text, #262a32);
+  --ldc-muted: var(--speaker-light-muted, #626b78);
+  --ldc-border: var(--speaker-light-border, #929ba8);
+  --ldc-divider: rgba(98, 107, 120, 0.25);
+  --ldc-button-bg: rgba(98, 107, 120, 0.06);
+  --ldc-hover-bg: var(--speaker-light-hover, #c3c9d2);
+  --ldc-hover-border: #626b78;
+  --ldc-accent: #526d8c;
+}
+
+body:is([data-ldc-theme="retro-terminal"], [data-ldc-theme="terminal-red"]) :is(#lichsoma-daily-calendar-container, #ldc-panel, #lichsoma-daily-calendar-webfont-css-editor) {
+  /* Share Speaker Selector's palette when available; the same fallbacks keep
+   * this theme independent. The widget retains its idle/hover opacity. */
+  --ldc-panel-bg: var(--speaker-terminal-window-bg, rgba(5, 9, 8, 0.9));
+  --ldc-panel-border: var(--speaker-terminal-border, rgb(var(--speaker-terminal-rgb, 143 255 199) / 0.3));
+  --ldc-text: var(--speaker-terminal-fg, #8fffc7);
+  --ldc-muted: var(--speaker-terminal-muted, #6cb99a);
+  --ldc-border: var(--speaker-terminal-border, rgb(var(--speaker-terminal-rgb, 143 255 199) / 0.3));
+  --ldc-divider: rgb(var(--speaker-terminal-rgb, 143 255 199) / 0.2);
+  --ldc-button-bg: var(--speaker-terminal-control-bg, rgba(5, 9, 8, 0.75));
+  --ldc-hover-bg: var(--speaker-terminal-control-hover, #244b3a);
+  --ldc-hover-border: var(--speaker-terminal-fg, #8fffc7);
+  --ldc-accent: var(--speaker-terminal-highlight, #baffdd);
+  --ldc-morning-bg: var(--speaker-terminal-control-active, #17382b);
+  --ldc-morning-border: var(--ldc-text);
+  --ldc-afternoon-bg: var(--speaker-terminal-control-active, #17382b);
+  --ldc-afternoon-border: var(--ldc-text);
+  --ldc-latenight-bg: var(--speaker-terminal-control-active, #17382b);
+  --ldc-latenight-border: var(--ldc-text);
+  --ldc-theme-font: var(--speaker-terminal-font, ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace);
+}
+
+/* The calendar accompanies the current (selected) scene. Use its active
+ * palette at rest, with the existing 40% opacity, rather than an idle button's
+ * translucent black surface. Hover keeps the previously matched hover palette. */
+body:is([data-ldc-theme="retro-terminal"], [data-ldc-theme="terminal-red"]) #lichsoma-daily-calendar-container {
+  --ldc-widget-bg: var(--speaker-terminal-control-active, #17382b);
+  --ldc-text: var(--ldc-accent);
+  --ldc-border: var(--speaker-terminal-fg, #8fffc7);
+}
+
+/* Match the terminal controls' hover surface, outline and highlighted text,
+ * while the base stylesheet restores full opacity only during hover. */
+body:is([data-ldc-theme="retro-terminal"], [data-ldc-theme="terminal-red"]) #lichsoma-daily-calendar-container .lichsoma-calendar-panel:hover {
+  background: var(--ldc-hover-bg);
+  border-color: var(--ldc-hover-border);
+  --ldc-text: var(--ldc-accent);
+}
+
+body:is([data-ldc-theme="retro-terminal"], [data-ldc-theme="terminal-red"]) #ldc-panel .ldc-time-btn:is(.active, :hover, :focus-visible) {
+  color: var(--ldc-accent);
+}
+
+/* One non-interactive layer per surface, including when the Selector also
+ * themes the editor. Small date/control panels use gentler edge shading. */
+body:is([data-ldc-theme="retro-terminal"], [data-ldc-theme="terminal-red"]) :is(
+  #lichsoma-daily-calendar-container .lichsoma-calendar-panel,
+  #ldc-panel, #lichsoma-daily-calendar-webfont-css-editor) {
+  isolation: isolate;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    border-radius: inherit;
+    background: repeating-linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.025) 0,
+      rgba(255, 255, 255, 0.025) 1px, transparent 1px, transparent 4px);
+    box-shadow: inset 0 0 var(--ldc-crt-edge-size, 70px) var(--ldc-crt-edge-color, rgba(0, 0, 0, 0.74));
+  }
+}
+body:is([data-ldc-theme="retro-terminal"], [data-ldc-theme="terminal-red"]) #lichsoma-daily-calendar-container .lichsoma-calendar-panel {
+  --ldc-crt-edge-size: 18px;
+  --ldc-crt-edge-color: rgba(0, 0, 0, 0.2);
+}
+body:is([data-ldc-theme="retro-terminal"], [data-ldc-theme="terminal-red"]) #ldc-panel {
+  --ldc-crt-edge-size: 32px;
+  --ldc-crt-edge-color: rgba(0, 0, 0, 0.24);
+}
+
+#ldc-panel {
+  color: var(--ldc-text);
+  font-family: var(--ldc-theme-font, var(--font-primary, sans-serif));
+}
+
+body:is([data-ldc-theme="retro-terminal"], [data-ldc-theme="terminal-red"]) #lichsoma-daily-calendar-container .lichsoma-calendar-date,
+body:is([data-ldc-theme="retro-terminal"], [data-ldc-theme="terminal-red"]) #lichsoma-daily-calendar-webfont-css-editor .window-title {
+  text-shadow: 0 0 5px rgb(var(--speaker-terminal-rgb, 143 255 199) / 0.3);
+}
+
+body[data-ldc-theme] #lichsoma-daily-calendar-webfont-css-editor.lichsoma-daily-calendar-css-editor {
+  background: var(--ldc-panel-bg);
+  color: var(--ldc-text);
+  font-family: var(--ldc-theme-font, var(--font-primary, sans-serif));
+}
+
+body[data-ldc-theme] #lichsoma-daily-calendar-webfont-css-editor.lichsoma-daily-calendar-css-editor :is(.window-header, .window-content, input, textarea, button) {
+  background: var(--ldc-panel-bg);
+  color: var(--ldc-text);
+  border-color: var(--ldc-border);
+}
+
+#lichsoma-daily-calendar-webfont-css-editor button:not(:disabled):is(:hover, :focus-visible) {
+  background: var(--ldc-hover-bg) !important;
+  color: var(--ldc-accent);
+  border-color: var(--ldc-hover-border);
+}
+
+/* Core navigation buttons may themselves be icon glyphs. Leave their face alone. */
+#ldc-panel button:not(.icon, [class*="fa-"], .fas, .far) {
+  font-family: inherit;
+}
+
+/* Standalone red tokens also keep inherited calendars visually identical. */
+body[data-ldc-theme="terminal-red"] :is(#lichsoma-daily-calendar-container, #ldc-panel, #lichsoma-daily-calendar-webfont-css-editor) {
+    --speaker-terminal-rgb: 255 155 155;
+    --speaker-terminal-bg-rgb: 11 5 5;
+    --speaker-terminal-header-rgb: 22 8 8;
+    --speaker-terminal-panel-rgb: 7 2 2;
+    --speaker-terminal-line: #643737;
+    --speaker-terminal-deep: #291313;
+    --speaker-terminal-strong: #dc8585;
+    --speaker-terminal-surface: #210e0e;
+    --speaker-terminal-fg: #ff9b9b;
+    --speaker-terminal-muted: #c57878;
+    --speaker-terminal-bg: #0b0505;
+    --speaker-terminal-panel: #070202;
+    --speaker-terminal-border: rgba(255, 155, 155, 0.3);
+    --speaker-terminal-control-active: #3b1919;
+    --speaker-terminal-control-hover: #512525;
+    --speaker-terminal-font: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --export-bg-color: var(--speaker-terminal-bg);
+    --export-text-color: var(--speaker-terminal-fg);
+    --export-border-color: var(--speaker-terminal-border);
+    --export-secondary-text-color: var(--speaker-terminal-muted);
+    --speaker-terminal-highlight: #ffd0d0;
+    --speaker-terminal-control-bg: rgba(11, 5, 5, 0.75);
+    --speaker-terminal-scrollbar: rgba(255, 155, 155, 0.5);
+    --speaker-terminal-window-bg: rgba(11, 5, 5, 0.9);
+    --speaker-terminal-selection-bg: rgba(255, 155, 155, 0.08);
+}

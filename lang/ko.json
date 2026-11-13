@@ -7,13 +7,25 @@
       "EnableCalendarHint": "캘린더 기능을 활성화하면 좌측 상단에 캘린더가 표시되고, LichSOMA's Taskbar와 날짜를 연동할 수 있습니다.",
       "BaseCalendarDate": "캘린더 기준 날짜 (YYYY/MM/DD)",
       "BaseCalendarDateHint": "1일째에 해당하는 날짜를 4자리 연/월/일로 입력하세요. 예: 2000/01/01",
-      "Font": {
-        "Default": "기본 폰트"
-      },
       "Settings": {
-        "CalendarFont": {
-          "Name": "캘린더 폰트",
-          "Hint": "캘린더 위젯에 사용할 폰트를 선택합니다."
+        "Theme": {
+          "Name": "테마",
+          "Inherited": "스피커 셀렉터 테마 사용 중 — 테마는 자동 적용됩니다.",
+          "Hint": "스피커 셀렉터 활성 시 해당 테마를 따르며 이 설정은 수정할 수 없습니다. 단독 사용 시 심플은 FVTT 기본 UI 라이트/다크 설정을 따릅니다. 지정한 캘린더 웹폰트는 유지됩니다.",
+          "Simple": "심플",
+          "RetroTerminal": "터미널 그린",
+        "TerminalRed": "터미널 레드"
+        },
+        "WebfontCSS": {
+          "Title": "캘린더 웹폰트 CSS 설정",
+          "EditButton": "웹폰트 CSS 편집",
+          "CSSLabel": "CSS 코드",
+          "Saved": "캘린더 웹폰트 CSS를 저장했습니다.",
+          "SaveFailed": "캘린더 웹폰트 CSS 저장 중 오류가 발생했습니다."
+        },
+        "CalendarWebfont": {
+          "Name": "캘린더 웹폰트",
+          "Hint": "캘린더 위젯에 적용할 웹폰트 CSS를 편집합니다. CSS의 첫 번째 font-family, font-weight, font-style, font-variation-settings 선언이 사용됩니다."
         }
       },
       "Panel": {
@@ -26,6 +38,19 @@
         "Morning": "오전",
         "Afternoon": "오후",
         "LateNight": "심야"
+      },
+      "Weekdays": {
+        "Sunday": "일요일",
+        "Monday": "월요일",
+        "Tuesday": "화요일",
+        "Wednesday": "수요일",
+        "Thursday": "목요일",
+        "Friday": "금요일",
+        "Saturday": "토요일"
+      },
+      "Common": {
+        "Save": "저장",
+        "Cancel": "취소"
       }
     }
   }

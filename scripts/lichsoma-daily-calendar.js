@@ -1,13 +1,21 @@
 /**
- * LichSOMA Daily Calendar — FVTT 14
+ * LichSOMA Daily Calendar — FVTT 13/14
  *
  * 시간대(오전/오후/심야) + 일자 카운트 캘린더 모듈.
- * lichsoma-time-and-weather에서 시간/캘린더 기능만 분리.
  *
  * - 캘린더 ON/OFF (모듈 설정). OFF 시 좌측 캘린더·테스크바 날짜 연동 해제
  * - 캘린더 기준 날짜 기본값: 2000/01/01
- * - 캘린더 폰트: lichsoma-nameplate와 동일하게 document.fonts 기반 목록 + 모듈 설정
+ * - 캘린더 폰트: 웹폰트 CSS를 월드 설정으로 저장하고 즉시 적용
  */
+
+import { applyCalendarTheme, CALENDAR_THEME_SETTING, registerCalendarThemeSetting } from './lichsoma-daily-calendar-theme.js';
+import { createCalendarTaskbarAdapter, CALENDAR_TASKBAR_BUTTON_SELECTOR } from './lichsoma-daily-calendar-taskbar.js';
+
+const calendarTaskbar = createCalendarTaskbarAdapter({
+  onClick: () => togglePanel(),
+  isActive: () => state.active,
+  title: () => game.i18n.localize('LICHSOMA.DAILY_CALENDAR.SceneControlTitle')
+});
 
 const MODULE_ID = 'lichsoma-daily-calendar';
 const TASKBAR_MODULE_ID = 'lichsoma-taskbar';
@@ -17,12 +25,255 @@ const SETTING_ENABLE_CALENDAR = 'enableCalendar';
 const SETTING_TIME_OF_DAY = 'timeOfDay';
 const SETTING_BASE_CALENDAR_DATE = 'baseCalendarDate';
 const SETTING_CURRENT_DAY = 'currentDay';
-const SETTING_CALENDAR_FONT = 'calendarFont';
+const SETTING_CALENDAR_WEBFONT_CSS = 'calendarWebfontCSS';
+const WEBFONT_STYLE_ID = 'lichsoma-daily-calendar-webfont-css';
+
+
+function stripWebfontCssComments(cssText) {
+  return String(cssText ?? "").replace(/\/\*[\s\S]*?\*\//g, " ");
+}
+
+function extractPreferredWebfontBlock(cssText) {
+  const css = stripWebfontCssComments(cssText);
+  const marker = css.match(/\.(?:lichsoma-webfont-settings|lichsoma-webfont-family-marker)\s*\{([\s\S]*?)\}/i);
+  return marker?.[1] || "";
+}
+
+function extractWebfontDeclaration(cssText, propertyName) {
+  const css = stripWebfontCssComments(cssText);
+  const escaped = String(propertyName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`${escaped}\\s*:\\s*([^;}{]+)`, "i");
+  const preferred = extractPreferredWebfontBlock(css);
+  const match = (preferred && preferred.match(pattern)) || css.match(pattern);
+  return String(match?.[1] ?? "").replace(/\s*!important\s*$/i, "").trim();
+}
+
+function normalizeWebfontFamily(value) {
+  let text = String(value ?? "").split(",")[0]?.trim() ?? "";
+  while (text.length >= 2) {
+    const first = text[0];
+    const last = text[text.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) text = text.slice(1, -1).trim();
+    else break;
+  }
+  return text;
+}
+
+function quoteWebfontFamily(value) {
+  const family = normalizeWebfontFamily(value);
+  return family ? `"${family.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"` : "";
+}
+
+function normalizeWebfontWeight(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  if (/^(?:normal|bold|bolder|lighter)$/i.test(text)) return text.toLowerCase();
+  if (/^var\(.+\)$/i.test(text)) return text;
+  if (/^\d{1,4}$/.test(text)) {
+    const numeric = Number(text);
+    return numeric >= 1 && numeric <= 1000 ? String(numeric) : "";
+  }
+  return "";
+}
+
+function normalizeWebfontStyle(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  if (/^(?:normal|italic)$/i.test(text)) return text.toLowerCase();
+  if (/^oblique(?:\s+-?(?:\d+(?:\.\d+)?|\.\d+)(?:deg|grad|rad|turn))?$/i.test(text)) return text;
+  if (/^var\(.+\)$/i.test(text)) return text;
+  return "";
+}
+
+function normalizeWebfontVariationSettings(value) {
+  const text = String(value ?? "").trim();
+  if (!text || /[{};]/.test(text)) return "";
+  return text;
+}
+
+function extractWebfontPresentation(cssText) {
+  return {
+    family: normalizeWebfontFamily(extractWebfontDeclaration(cssText, "font-family")),
+    weight: normalizeWebfontWeight(extractWebfontDeclaration(cssText, "font-weight")),
+    style: normalizeWebfontStyle(extractWebfontDeclaration(cssText, "font-style")),
+    variationSettings: normalizeWebfontVariationSettings(extractWebfontDeclaration(cssText, "font-variation-settings"))
+  };
+}
+
+class LichsomaDailyCalendarWebfontCSSEditor extends foundry.applications.api.ApplicationV2 {
+  static DEFAULT_OPTIONS = {
+    id: 'lichsoma-daily-calendar-webfont-css-editor',
+    classes: ['lichsoma-daily-calendar-css-editor'],
+    tag: 'div',
+    window: {
+      frame: true,
+      positioned: true,
+      title: 'LICHSOMA.DAILY_CALENDAR.Settings.WebfontCSS.Title',
+      resizable: true,
+      minimizable: false,
+    },
+    position: {
+      width: 800,
+      height: 600,
+    },
+  };
+
+  editor = null;
+  _resizeObserver = null;
+
+  async _prepareContext(_options) {
+    return {
+      css: game.settings.get(MODULE_ID, SETTING_CALENDAR_WEBFONT_CSS) || '',
+      label: localize('LICHSOMA.DAILY_CALENDAR.Settings.WebfontCSS.CSSLabel'),
+      save: localize('LICHSOMA.DAILY_CALENDAR.Common.Save'),
+      cancel: localize('LICHSOMA.DAILY_CALENDAR.Common.Cancel'),
+    };
+  }
+
+  async _renderHTML(context, _options) {
+    const form = document.createElement('form');
+    form.classList.add('lichsoma-daily-calendar-css-editor-form');
+    form.innerHTML = `
+      <div class="form-group lichsoma-daily-calendar-css-editor-main">
+        <label>${context.label}</label>
+        <textarea name="css" rows="20" spellcheck="false"></textarea>
+      </div>
+      <div class="form-group lichsoma-daily-calendar-css-editor-actions">
+        <button type="button" class="save-css">${context.save}</button>
+        <button type="button" class="cancel-css">${context.cancel}</button>
+      </div>
+    `;
+    const textarea = form.querySelector('textarea[name="css"]');
+    if (textarea) textarea.value = context.css ?? '';
+    return form;
+  }
+
+  _replaceHTML(result, content, _options) {
+    content.replaceChildren(result);
+  }
+
+  async _onFirstRender(_context, _options) {
+    const form = this.element.querySelector('form.lichsoma-daily-calendar-css-editor-form');
+    const textarea = form?.querySelector('textarea[name="css"]');
+    if (!form || !textarea) return;
+
+    const CodeMirrorClass = window.CodeMirror || CONFIG.CM?.CodeMirror;
+    if (CodeMirrorClass) {
+      const editor = CodeMirrorClass.fromTextArea(textarea, {
+        mode: 'css',
+        theme: 'foundry',
+        lineNumbers: true,
+        indentUnit: 2,
+        tabSize: 2,
+        lineWrapping: true,
+        autofocus: true,
+        extraKeys: {
+          'Ctrl-S': () => void this._onSave(),
+          'Cmd-S': () => void this._onSave(),
+        },
+      });
+      this.editor = editor;
+      this._resizeObserver = new ResizeObserver(() => setTimeout(() => editor.refresh(), 100));
+      this._resizeObserver.observe(this.element);
+    }
+
+    form.querySelector('.save-css')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      void this._onSave();
+    });
+    form.querySelector('.cancel-css')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      void this.close();
+    });
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      void this._onSave();
+    });
+  }
+
+  async _onClose(_options) {
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = null;
+    if (this.editor) {
+      try {
+        this.editor.toTextArea();
+      } catch (_error) {
+        // no-op
+      }
+      this.editor = null;
+    }
+  }
+
+  async _onSave() {
+    try {
+      const css = this.editor?.getValue?.()
+        ?? this.element.querySelector('textarea[name="css"]')?.value
+        ?? '';
+      await game.settings.set(MODULE_ID, SETTING_CALENDAR_WEBFONT_CSS, css);
+      ui.notifications.info(localize('LICHSOMA.DAILY_CALENDAR.Settings.WebfontCSS.Saved'));
+      await this.close();
+    } catch (error) {
+      console.error(`[${MODULE_ID}] Webfont CSS save failed`, error);
+      ui.notifications.error(localize('LICHSOMA.DAILY_CALENDAR.Settings.WebfontCSS.SaveFailed'));
+    }
+  }
+}
 
 const VALID_TIMES = new Set(['morning', 'afternoon', 'latenight']);
 
 const CALENDAR_CONTAINER_ID = 'lichsoma-daily-calendar-container';
 const SCENE_NAV_ID = 'scene-navigation';
+
+/**
+ * FVTT 13/14 compatibility helpers.
+ * - v13 can pass scene controls as an array with `tools` arrays.
+ * - v14 can pass scene controls as an object with `tools` records.
+ * - the left UI column/navigation IDs can differ across interface versions/themes.
+ */
+function findSceneControl(controls, name) {
+  if (!controls) return null;
+  if (Array.isArray(controls)) return controls.find((c) => c?.name === name) ?? null;
+  if (controls[name]) return controls[name];
+  if (typeof controls === 'object') {
+    return Object.values(controls).find((c) => c?.name === name) ?? null;
+  }
+  return null;
+}
+
+function addSceneControlTool(control, toolName, toolData) {
+  if (!control) return false;
+  if (!control.tools) control.tools = Array.isArray(control.tools) ? control.tools : {};
+
+  if (Array.isArray(control.tools)) {
+    const existing = control.tools.find((t) => t?.name === toolName);
+    if (existing) Object.assign(existing, toolData);
+    else control.tools.push({ ...toolData, name: toolName });
+    return true;
+  }
+
+  const tools = control.tools;
+  const order = Number.isFinite(toolData.order) ? toolData.order : Object.keys(tools).length;
+  tools[toolName] = { ...toolData, name: toolName, order };
+  return true;
+}
+
+function getSceneNavigationElement() {
+  return (
+    document.getElementById(SCENE_NAV_ID) ||
+    document.getElementById('navigation') ||
+    document.querySelector('#ui-left-column-2 #scene-navigation, #ui-left #scene-navigation, #ui-left #navigation, nav#scene-navigation, nav#navigation')
+  );
+}
+
+function getCalendarMountParent(sceneNav) {
+  return (
+    document.getElementById('ui-left-column-2') ||
+    sceneNav?.parentElement ||
+    document.getElementById('ui-left') ||
+    document.getElementById('interface') ||
+    document.body
+  );
+}
 
 const state = {
   active: false,
@@ -33,175 +284,10 @@ const state = {
   latenightOverlay: null,
 };
 
-/** @see lichsoma-nameplate — 폰트 선택지 중복 갱신 방지 */
-let _fontChoicesUpdated = false;
+let _calendarWebfontProfile = { family: '', weight: '', style: '', variationSettings: '' };
 
-function normalizeFontFamilyName(name) {
-  if (name == null) return '';
-  const s = String(name).trim();
-  if (!s) return '';
-  return s.replace(/^['"]+|['"]+$/g, '').trim();
-}
-
-/** lichsoma-nameplate와 동일하게 document.fonts에서 선택 가능한 폰트 목록 구성 */
-function getAvailableFonts() {
-  try {
-    const loadedFonts = [];
-    try {
-      if (document.fonts?.forEach) {
-        document.fonts.forEach((font) => {
-          const family = font.family;
-          if (family && typeof family === 'string') {
-            const n = normalizeFontFamilyName(family);
-            if (n) loadedFonts.push(n);
-          }
-        });
-      }
-    } catch (e) {
-      /* ignore */
-    }
-
-    const excludePatterns = [
-      'modesto condensed',
-      'modesto',
-      'amiri',
-      'signika',
-      'bruno ace',
-      'font awesome',
-      'fontawesome',
-      'fallback',
-    ];
-
-    const filteredFonts = loadedFonts.filter((font) => {
-      if (!font || typeof font !== 'string') return false;
-      const lowerFont = font.toLowerCase().trim();
-      return !excludePatterns.some((pattern) => lowerFont.includes(pattern));
-    });
-
-    const uniqueFonts = [...new Set(filteredFonts)];
-    const allFonts = ['default', ...uniqueFonts.filter((f) => f && f.trim() !== '' && f !== 'default')];
-    const sortedFonts = allFonts.sort((a, b) => {
-      if (a === 'default') return -1;
-      if (b === 'default') return 1;
-      return a.localeCompare(b, ['ko', 'en'], { numeric: true, sensitivity: 'base' });
-    });
-
-    const fontChoices = {};
-    sortedFonts.forEach((font) => {
-      if (font === 'default') {
-        fontChoices[font] = localize('LICHSOMA.DAILY_CALENDAR.Font.Default');
-      } else {
-        fontChoices[font] = font;
-      }
-    });
-    return fontChoices;
-  } catch (e) {
-    console.warn(`[${MODULE_ID}] 폰트 목록 수집 실패`, e);
-    return {
-      default: localize('LICHSOMA.DAILY_CALENDAR.Font.Default'),
-      Arial: 'Arial',
-      'Times New Roman': 'Times New Roman',
-      'Courier New': 'Courier New',
-      Verdana: 'Verdana',
-    };
-  }
-}
-
-function updateFontChoices(force = false) {
-  if (!force && _fontChoicesUpdated) return;
-  try {
-    const availableFonts = getAvailableFonts();
-    const rawFont = game.settings.get(MODULE_ID, SETTING_CALENDAR_FONT);
-    const currentFont = normalizeFontFamilyName(rawFont);
-    if (currentFont && currentFont !== 'default' && !availableFonts[currentFont]) {
-      availableFonts[currentFont] = currentFont;
-    }
-    const setting = game.settings.settings.get(`${MODULE_ID}.${SETTING_CALENDAR_FONT}`);
-    if (setting) {
-      setting.choices = availableFonts;
-      _fontChoicesUpdated = true;
-    }
-  } catch (e) {
-    console.warn(`[${MODULE_ID}] 폰트 선택지 갱신 실패`, e);
-  }
-}
-
-function waitForFontsAndUpdate() {
-  if (document.fonts?.ready) {
-    document.fonts.ready
-      .then(() => {
-        setTimeout(() => updateFontChoices(), 500);
-      })
-      .catch(() => {
-        setTimeout(() => updateFontChoices(), 1000);
-      });
-  } else {
-    setTimeout(() => updateFontChoices(), 1000);
-  }
-  setTimeout(() => updateFontChoices(true), 5000);
-  setTimeout(() => updateFontChoices(true), 10000);
-}
-
-/** Foundry CONFIG.fontDefinitions에는 등록되어 있지만 브라우저에는
- *  @font-face가 없어서 CSS에서 매칭이 안 되는 경우를 대비해 동적으로 @font-face를 주입한다.
- *  (PIXI/canvas는 별도 경로로 폰트를 쓰는 경우가 있어 그쪽은 보이는데 HTML에선 안 보일 때 발생) */
-function ensureFontFaceForFamily(family) {
-  if (!family || family === 'default') return false;
-
-  // CSS 매칭이 이미 가능한 상태라면 추가 작업 불필요
-  try {
-    if (document.fonts?.check?.(`12px "${family}"`)) return true;
-  } catch (_) {
-    /* ignore */
-  }
-
-  try {
-    const def = CONFIG?.fontDefinitions?.[family];
-    if (!def || !Array.isArray(def.fonts) || !def.fonts.length) return false;
-
-    const safeId = String(family).replace(/[^a-zA-Z0-9가-힣]/g, '_');
-    const styleId = `ldc-font-face-${safeId}`;
-    if (document.getElementById(styleId)) return true;
-
-    const declarations = def.fonts
-      .map((font) => {
-        const urls = (Array.isArray(font.urls) ? font.urls : [])
-          .map((u) => `url("${u}")`)
-          .join(', ');
-        if (!urls) return '';
-        const weight = font.weight ? `font-weight: ${font.weight};` : '';
-        const style = font.style ? `font-style: ${font.style};` : '';
-        return `@font-face {
-          font-family: "${family}";
-          src: ${urls};
-          ${weight}
-          ${style}
-          font-display: swap;
-        }`;
-      })
-      .filter(Boolean)
-      .join('\n');
-
-    if (!declarations) return false;
-
-    const el = document.createElement('style');
-    el.id = styleId;
-    el.textContent = declarations;
-    document.head.appendChild(el);
-
-    // 한 번 명시적으로 로드 트리거
-    try { document.fonts?.load?.(`16px "${family}"`); } catch (_) {}
-
-    return true;
-  } catch (e) {
-    console.warn(`[${MODULE_ID}] ensureFontFaceForFamily failed`, e);
-    return false;
-  }
-}
-
-/** 컨테이너 + 캘린더 내부 요소들에 직접 인라인 스타일을 박아 강제 적용한다.
- *  Foundry/다른 모듈이 더 강한 셀렉터로 폰트를 덮어쓰는 경우에도 확실히 이긴다. */
-function applyCalendarFontInline(fontFamily) {
+/** 컨테이너와 캘린더 내부 요소에 직접 적용해 다른 UI 규칙보다 우선한다. */
+function applyCalendarFontInline(profile = _calendarWebfontProfile) {
   const container = document.getElementById(CALENDAR_CONTAINER_ID);
   if (!container) return 0;
 
@@ -222,15 +308,21 @@ function applyCalendarFontInline(fontFamily) {
     .forEach((el) => targets.push(el));
 
   targets.forEach((el) => {
-    if (fontFamily) {
-      el.style.setProperty('font-family', fontFamily, 'important');
-      // 폰트가 weight 900을 가지지 않으면 매칭 자체가 실패해 fallback이 발생할 수 있다.
-      // font-synthesis로 굵기를 합성해 강제하고, 인라인 weight는 적용하지 않는다.
+    if (profile.family) el.style.setProperty('font-family', quoteWebfontFamily(profile.family), 'important');
+    else el.style.removeProperty('font-family');
+
+    if (profile.weight) el.style.setProperty('font-weight', profile.weight, 'important');
+    else el.style.removeProperty('font-weight');
+
+    if (profile.style) el.style.setProperty('font-style', profile.style, 'important');
+    else el.style.removeProperty('font-style');
+
+    if (profile.variationSettings) el.style.setProperty('font-variation-settings', profile.variationSettings, 'important');
+    else el.style.removeProperty('font-variation-settings');
+
+    if (profile.family || profile.weight || profile.style || profile.variationSettings) {
       el.style.setProperty('font-synthesis', 'weight style', 'important');
-      el.style.removeProperty('font-weight');
     } else {
-      el.style.removeProperty('font-family');
-      el.style.removeProperty('font-weight');
       el.style.removeProperty('font-synthesis');
     }
   });
@@ -238,35 +330,45 @@ function applyCalendarFontInline(fontFamily) {
   return targets.length;
 }
 
-function applyCalendarFontVariable() {
+function applyCalendarWebfontCSS() {
+  let css = '';
   try {
-    let raw = 'default';
-    try {
-      raw = game.settings.get(MODULE_ID, SETTING_CALENDAR_FONT) || 'default';
-    } catch (_) {
-      // 설정이 아직 등록되지 않은 시점에서도 그냥 default로 처리.
-    }
-    const n = normalizeFontFamilyName(raw);
-
-    let fontFamily = '';
-    if (n && n !== 'default') {
-      ensureFontFaceForFamily(n);
-      const safe = String(n).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-      // inline의 font-family fallback에 var()을 두면 환경에 따라 평가가 깨질 수 있어 단순화.
-      fontFamily = `"${safe}", sans-serif`;
-    }
-
-    if (fontFamily) {
-      document.documentElement.style.setProperty('--ldc-calendar-font-family', fontFamily);
-    } else {
-      document.documentElement.style.removeProperty('--ldc-calendar-font-family');
-    }
-
-    applyCalendarFontInline(fontFamily);
-  } catch (e) {
-    document.documentElement.style.removeProperty('--ldc-calendar-font-family');
-    console.warn(`[${MODULE_ID}] calendar font apply failed`, e);
+    css = String(game.settings.get(MODULE_ID, SETTING_CALENDAR_WEBFONT_CSS) ?? '').trim();
+  } catch (_) {
+    css = '';
   }
+
+  let style = document.getElementById(WEBFONT_STYLE_ID);
+  if (!css) {
+    style?.remove();
+    _calendarWebfontProfile = { family: '', weight: '', style: '', variationSettings: '' };
+    document.documentElement.style.removeProperty('--ldc-calendar-font-family');
+    applyCalendarFontInline(_calendarWebfontProfile);
+    return;
+  }
+
+  if (!style) {
+    style = document.createElement('style');
+    style.id = WEBFONT_STYLE_ID;
+    style.type = 'text/css';
+    document.head.appendChild(style);
+  }
+  style.textContent = css;
+  _calendarWebfontProfile = extractWebfontPresentation(css);
+
+  if (_calendarWebfontProfile.family) {
+    document.documentElement.style.setProperty('--ldc-calendar-font-family', quoteWebfontFamily(_calendarWebfontProfile.family));
+  } else {
+    document.documentElement.style.removeProperty('--ldc-calendar-font-family');
+  }
+  applyCalendarFontInline(_calendarWebfontProfile);
+
+  const refresh = () => applyCalendarFontInline(_calendarWebfontProfile);
+  try {
+    document.fonts?.ready?.then(refresh).catch(() => {});
+  } catch (_) {}
+  setTimeout(refresh, 250);
+  setTimeout(refresh, 1000);
 }
 
 function localize(key) {
@@ -376,9 +478,19 @@ function formatYYMMDD({ yy, mm, dd }) {
   return `${String(yy).padStart(4, '0')}/${pad2(mm)}/${pad2(dd)}`;
 }
 
-function getWeekdayKorean(date) {
-  const labels = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-  return labels[date.getUTCDay()] ?? '';
+function formatI18n(key, data = {}) {
+  if (typeof game?.i18n?.format === 'function') return game.i18n.format(key, data);
+  let text = localize(key);
+  Object.entries(data).forEach(([k, v]) => {
+    text = text.replaceAll(`{${k}}`, String(v));
+  });
+  return text;
+}
+
+function getWeekdayLabel(date) {
+  const keys = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const key = keys[date.getUTCDay()];
+  return key ? localize(`LICHSOMA.DAILY_CALENDAR.Weekdays.${key}`) : '';
 }
 
 function getTimeIconClass(time) {
@@ -425,19 +537,20 @@ function applyTimeOfDayOverlay(timeOfDay) {
   if (oldOverlay && oldOverlay.classList.contains('visible') && oldOverlay !== newOverlay) {
     oldOverlay.classList.remove('visible');
     requestAnimationFrame(() => {
-      newOverlay.classList.add('visible');
+      if (state.timeOverlayElement === newOverlay) newOverlay.classList.add('visible');
     });
   } else {
     if (wasCreatedNow || !oldOverlay) {
       requestAnimationFrame(() => {
+        if (state.timeOverlayElement !== newOverlay) return;
         void newOverlay.getBoundingClientRect();
         requestAnimationFrame(() => {
-          if (!newOverlay.classList.contains('visible')) newOverlay.classList.add('visible');
+          if (state.timeOverlayElement === newOverlay && !newOverlay.classList.contains('visible')) newOverlay.classList.add('visible');
         });
       });
     } else if (!newOverlay.classList.contains('visible')) {
       requestAnimationFrame(() => {
-        newOverlay.classList.add('visible');
+        if (state.timeOverlayElement === newOverlay) newOverlay.classList.add('visible');
       });
     }
   }
@@ -516,7 +629,7 @@ function setupOutsideClickHandler() {
 
   state.outsideClickHandler = (event) => {
     const panel = document.getElementById('ldc-panel');
-    const taskbarButton = document.getElementById('taskbar-daily-calendar-btn');
+    const taskbarButton = event.target.closest?.(CALENDAR_TASKBAR_BUTTON_SELECTOR);
 
     if (panel && panel.contains(event.target)) return;
     if (taskbarButton && taskbarButton.contains(event.target)) return;
@@ -553,10 +666,7 @@ function syncPanelTimeSectionLayout() {
   if (label) {
     if (cal) {
       const d = readCurrentDay();
-      label.textContent =
-        typeof game.i18n?.format === 'function'
-          ? game.i18n.format('LICHSOMA.DAILY_CALENDAR.Panel.DayCount', { day: d })
-          : localize('LICHSOMA.DAILY_CALENDAR.Panel.DayCount').replace('{day}', String(d));
+      label.textContent = formatI18n('LICHSOMA.DAILY_CALENDAR.Panel.DayCount', { day: d });
     } else {
       label.textContent = '';
     }
@@ -604,6 +714,7 @@ function setActive(active) {
 
   const panel = document.getElementById('ldc-panel');
   if (panel) panel.classList.toggle('hidden', !active);
+  calendarTaskbar.refreshState();
 
   if (!active && state.outsideClickHandler) {
     document.removeEventListener('click', state.outsideClickHandler);
@@ -762,7 +873,7 @@ function renderCalendar() {
   const base = parseBaseDate(game.settings.get(MODULE_ID, SETTING_BASE_CALENDAR_DATE));
   const computed = base ? addDaysToDate(base, day - 1) : null;
   const dateStr = computed ? formatYYMMDD(computed) : '????/??/??';
-  const weekday = computed ? getWeekdayKorean(toUtcDate(computed)) : '';
+  const weekday = computed ? getWeekdayLabel(toUtcDate(computed)) : '';
 
   const container = ensureCalendarDom();
   const content = container.querySelector('.lichsoma-calendar-content');
@@ -777,7 +888,7 @@ function renderCalendar() {
   const timeIconClass = getTimeIconClass(time);
 
   const applyFull = () => {
-    if (dateEl) dateEl.textContent = `${dateStr} ${day}일차`;
+    if (dateEl) dateEl.textContent = `${dateStr} ${formatI18n('LICHSOMA.DAILY_CALENDAR.Panel.DayCount', { day })}`;
     if (weekdayTextEl) weekdayTextEl.textContent = weekday;
 
     if (timeIconEl) timeIconEl.className = `${timeIconClass} lichsoma-calendar-time-icon`.trim();
@@ -801,7 +912,7 @@ function renderCalendar() {
   else applyFull();
 
   // 캘린더 DOM이 (재)생성된 직후일 수 있으므로 자식들에 폰트를 다시 박는다.
-  applyCalendarFontVariable();
+  applyCalendarWebfontCSS();
 }
 
 function unmountCalendar() {
@@ -812,22 +923,23 @@ function unmountCalendar() {
 function mountCalendarAboveSceneNav() {
   if (!isCalendarEnabled()) return;
 
-  const uiCol2 = document.getElementById('ui-left-column-2');
-  const sceneNav = document.getElementById(SCENE_NAV_ID);
-  if (!uiCol2 || !sceneNav) return;
+  const sceneNav = getSceneNavigationElement();
+  const parent = getCalendarMountParent(sceneNav);
+  if (!parent) return;
 
   const container = ensureCalendarContainer();
 
-  if (container.parentElement !== uiCol2) uiCol2.appendChild(container);
-  if (sceneNav.parentElement === uiCol2) {
-    uiCol2.insertBefore(container, sceneNav);
-  } else {
-    if (uiCol2.firstChild) uiCol2.insertBefore(container, uiCol2.firstChild);
-    else uiCol2.appendChild(container);
+  if (container.parentElement !== parent) parent.appendChild(container);
+  if (sceneNav?.parentElement === parent) {
+    parent.insertBefore(container, sceneNav);
+  } else if (parent.firstChild && parent.firstChild !== container) {
+    parent.insertBefore(container, parent.firstChild);
+  } else if (!container.parentElement) {
+    parent.appendChild(container);
   }
 
   renderCalendar();
-  applyCalendarFontVariable();
+  applyCalendarWebfontCSS();
 }
 
 function updateTaskbarDateTime() {
@@ -843,7 +955,7 @@ function updateTaskbarDateTime() {
   const base = parseBaseDate(game.settings.get(MODULE_ID, SETTING_BASE_CALENDAR_DATE));
   const computed = base ? addDaysToDate(base, day - 1) : null;
   const dateStr = computed ? formatYYMMDD(computed) : '????/??/??';
-  const weekday = computed ? getWeekdayKorean(toUtcDate(computed)) : '';
+  const weekday = computed ? getWeekdayLabel(toUtcDate(computed)) : '';
 
   const timeLabel =
     timeOfDay === 'morning' ? localize('LICHSOMA.DAILY_CALENDAR.Panel.Morning')
@@ -866,6 +978,7 @@ function notifyTaskbarStatsRefresh() {
 }
 
 Hooks.once('init', () => {
+  registerCalendarThemeSetting();
   game.settings.register(MODULE_ID, SETTING_ENABLE_CALENDAR, {
     name: localize('LICHSOMA.DAILY_CALENDAR.EnableCalendar'),
     hint: localize('LICHSOMA.DAILY_CALENDAR.EnableCalendarHint'),
@@ -923,52 +1036,67 @@ Hooks.once('init', () => {
     default: 1,
   });
 
-  game.settings.register(MODULE_ID, SETTING_CALENDAR_FONT, {
-    name: localize('LICHSOMA.DAILY_CALENDAR.Settings.CalendarFont.Name'),
-    hint: localize('LICHSOMA.DAILY_CALENDAR.Settings.CalendarFont.Hint'),
-    scope: 'world',
-    config: true,
-    type: String,
-    choices: { default: localize('LICHSOMA.DAILY_CALENDAR.Font.Default') },
-    default: 'default',
-    onChange: () => {
-      applyCalendarFontVariable();
-    },
+  game.settings.registerMenu(MODULE_ID, 'calendarWebfontCSSMenu', {
+    name: localize('LICHSOMA.DAILY_CALENDAR.Settings.CalendarWebfont.Name'),
+    label: localize('LICHSOMA.DAILY_CALENDAR.Settings.WebfontCSS.EditButton'),
+    hint: localize('LICHSOMA.DAILY_CALENDAR.Settings.CalendarWebfont.Hint'),
+    icon: 'fas fa-font',
+    type: LichsomaDailyCalendarWebfontCSSEditor,
+    restricted: true,
   });
 
-  waitForFontsAndUpdate();
+  game.settings.register(MODULE_ID, SETTING_CALENDAR_WEBFONT_CSS, {
+    name: localize('LICHSOMA.DAILY_CALENDAR.Settings.CalendarWebfont.Name'),
+    hint: localize('LICHSOMA.DAILY_CALENDAR.Settings.CalendarWebfont.Hint'),
+    scope: 'world',
+    config: false,
+    type: String,
+    default: '',
+    onChange: () => applyCalendarWebfontCSS(),
+  });
 
-  // 초기 1회 적용(저장된 폰트 즉시 반영)
-  applyCalendarFontVariable();
+  applyCalendarWebfontCSS();
 });
 
 Hooks.once('setup', () => {
-  applyCalendarFontVariable();
+  applyCalendarWebfontCSS();
 });
 
 Hooks.once('canvasReady', () => {
-  applyCalendarFontVariable();
+  applyCalendarWebfontCSS();
 });
 
 Hooks.on('getSceneControlButtons', (controls) => {
-  const lighting = controls.lighting;
-  if (!lighting?.tools) return;
+  // 1.0.1의 의도 유지: GM에게만 컨트롤 버튼을 표시한다.
+  if (!game.user?.isGM) return;
 
-  lighting.tools.dailycalendar = {
-    name: 'dailycalendar',
+  const lighting = findSceneControl(controls, 'lighting');
+  if (!lighting) return;
+
+  const toolData = {
     title: 'LICHSOMA.DAILY_CALENDAR.SceneControlTitle',
     icon: BUTTON_ICON,
-    order: Object.keys(lighting.tools).length,
     button: true,
+    visible: true,
+    toggle: false,
+    // FVTT 13 계열은 onClick, FVTT 14 계열은 onChange를 사용하는 경우가 있어 둘 다 제공한다.
+    onClick: () => togglePanel(),
     onChange: () => togglePanel(),
   };
+
+  addSceneControlTool(lighting, 'dailycalendar', toolData);
 });
 
 Hooks.on('updateSetting', (setting) => {
   if (setting.namespace && setting.namespace !== MODULE_ID) return;
 
-  if (isOurSettingKey(setting, SETTING_CALENDAR_FONT)) {
-    applyCalendarFontVariable();
+  if (isOurSettingKey(setting, CALENDAR_THEME_SETTING)) {
+    applyCalendarTheme();
+    return;
+  }
+
+  if (isOurSettingKey(setting, SETTING_CALENDAR_WEBFONT_CSS)) {
+    applyCalendarWebfontCSS();
     return;
   }
 
@@ -998,56 +1126,9 @@ Hooks.on('updateSetting', (setting) => {
   }
 });
 
-function setupTaskbarButton() {
-  if (!game.modules.get(TASKBAR_MODULE_ID)?.active) return;
-
-  const taskbar = document.getElementById('lichsoma-taskbar');
-  const taskbarRight = taskbar?.querySelector('.taskbar-right');
-  if (!taskbarRight) return;
-
-  if (document.getElementById('taskbar-daily-calendar-btn')) return;
-
-  const button = document.createElement('button');
-  button.className = 'taskbar-icon-btn';
-  button.id = 'taskbar-daily-calendar-btn';
-  button.title = game.i18n.localize('LICHSOMA.DAILY_CALENDAR.SceneControlTitle');
-  button.innerHTML = `<i class="${BUTTON_ICON}"></i>`;
-  button.addEventListener('click', (e) => {
-    e.stopPropagation();
-    togglePanel();
-  });
-
-  taskbarRight.insertBefore(button, taskbarRight.firstChild);
-}
-
-Hooks.on('renderSettingsConfig', (app, html) => {
-  try {
-    const root = html?.[0] ?? html;
-    const selects = root?.querySelectorAll?.(`select[name*='${MODULE_ID}']`);
-    if (!selects?.length) return;
-
-    updateFontChoices(true);
-    const choices = getAvailableFonts();
-    selects.forEach((select) => {
-      const n = select.name || '';
-      if (!n.includes(SETTING_CALENDAR_FONT)) return;
-      const current = game.settings.get(MODULE_ID, SETTING_CALENDAR_FONT);
-      select.innerHTML = '';
-      Object.entries(choices).forEach(([value, label]) => {
-        const opt = document.createElement('option');
-        opt.value = value;
-        opt.textContent = label;
-        if (value === current) opt.selected = true;
-        select.appendChild(opt);
-      });
-    });
-  } catch (_) {
-    /* ignore */
-  }
-});
-
 Hooks.once('ready', () => {
-  applyCalendarFontVariable();
+  applyCalendarTheme();
+  applyCalendarWebfontCSS();
 
   state.timeOfDay = readTimeFromWorld();
 
@@ -1062,25 +1143,8 @@ Hooks.once('ready', () => {
     }
   }, 100);
 
-  setupTaskbarButton();
+  calendarTaskbar.initialize();
   refreshTaskbarDate();
   notifyTaskbarStatsRefresh();
 
-  // body 전역에서 DOM 변경마다 날짜를 갱신하면 로딩 중 수천 번 호출되어 메인 스레드가 멈춤.
-  // 테스크바는 1초 간격으로 updatePerformanceStats → updateTaskbarDateTime을 이미 호출함.
-  const taskbarObserver = new MutationObserver(() => {
-    if (
-      game.modules.get(TASKBAR_MODULE_ID)?.active &&
-      document.getElementById('lichsoma-taskbar') &&
-      !document.getElementById('taskbar-daily-calendar-btn')
-    ) {
-      setupTaskbarButton();
-      refreshTaskbarDate();
-    }
-  });
-
-  taskbarObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
 });

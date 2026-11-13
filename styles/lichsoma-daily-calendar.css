@@ -1,15 +1,15 @@
 /* lichsoma-daily-calendar.css */
-/* lichsoma-time-and-weather에서 시간/캘린더 관련 스타일만 분리 (weather 관련 제거) */
+/* Daily Calendar: 시간대·일자 표시와 조절 패널 */
 
 /* ============================================================
  * 캘린더 (좌측 상단 표시)
- * 폰트: 모듈 설정(calendarFont) → JS가 --ldc-calendar-font-family 설정 (lichsoma-nameplate와 동일 원리)
+ * 폰트: 웹폰트 CSS 설정의 첫 font-family → JS가 --ldc-calendar-font-family 설정
  * ============================================================ */
 
 #lichsoma-daily-calendar-container {
   margin-bottom: 0.5rem;
   pointer-events: auto;
-  font-family: var(--ldc-calendar-font-family, var(--font-primary, sans-serif));
+  font-family: var(--ldc-calendar-font-family, var(--ldc-theme-font, var(--font-primary, sans-serif)));
   font-weight: bolder;
   font-synthesis: weight style;
 }
@@ -24,7 +24,7 @@
 #lichsoma-daily-calendar-container .lichsoma-calendar-date,
 #lichsoma-daily-calendar-container .lichsoma-calendar-weekday,
 #lichsoma-daily-calendar-container .lichsoma-calendar-weekday-text {
-  font-family: var(--ldc-calendar-font-family, var(--font-primary, sans-serif)) !important;
+  font-family: var(--ldc-calendar-font-family, var(--ldc-theme-font, var(--font-primary, sans-serif))) !important;
   font-synthesis: weight style !important;
 }
 
@@ -60,8 +60,8 @@
   max-width: 200px;
   min-height: 72px;
   box-sizing: border-box;
-  background: var(--color-cool-5-75);
-  border: 1px solid var(--control-border-color);
+  background: var(--ldc-widget-bg);
+  border: 1px solid var(--ldc-border);
   border-radius: 4px;
   opacity: 0.4;
   transition: opacity 0.5s ease-in-out;
@@ -120,7 +120,7 @@
   margin: 0;
   border: none;
   background: transparent;
-  color: var(--control-icon-color);
+  color: var(--ldc-text);
   cursor: pointer;
   pointer-events: auto;
   display: inline-flex;
@@ -138,7 +138,7 @@
 }
 
 .lichsoma-calendar-btn:hover:not(:disabled) {
-  color: var(--control-icon-color);
+  color: var(--ldc-text);
 }
 
 .lichsoma-calendar-btn:disabled {
@@ -154,7 +154,7 @@
 .lichsoma-calendar-date {
   font-size: 16px;
   line-height: 1.15;
-  color: var(--control-icon-color);
+  color: var(--ldc-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   font-weight: bolder;
@@ -167,7 +167,7 @@
   gap: 4px;
   font-size: 14px;
   line-height: 1;
-  color: var(--control-icon-color);
+  color: var(--ldc-text);
   user-select: none;
   white-space: nowrap;
   font-weight: bolder;
@@ -193,9 +193,9 @@
   bottom: var(--taskbar-height, 45px);
   right: 10px;
   width: auto;
-  background-color: var(--taskbar-color, #0B0A13);
+  background-color: var(--ldc-panel-bg);
   opacity: var(--taskbar-opacity, 1);
-  border: 0px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--ldc-panel-border);
   border-radius: 0px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   z-index: 99;
@@ -224,10 +224,10 @@
 
 .ldc-section-title {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ldc-muted);
   text-align: center;
   padding-bottom: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--ldc-divider);
 }
 
 .ldc-time-heading-simple .ldc-section-title {
@@ -265,12 +265,18 @@
   border: none;
   outline: none;
   border-radius: 4px;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--ldc-text);
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.ldc-nav-btn:hover:not(:disabled) {
-  color: #ffbb00;
+.ldc-nav-btn:not(:disabled):is(:hover, :focus-visible) {
+  background: var(--ldc-hover-bg);
+  color: var(--ldc-accent);
+}
+
+.ldc-nav-btn:focus-visible {
+  outline: 1px solid var(--ldc-accent);
+  outline-offset: -1px;
 }
 
 .ldc-nav-btn:disabled {
@@ -313,37 +319,37 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--ldc-button-bg);
+  border: 1px solid var(--ldc-border);
   border-radius: 4px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--ldc-text);
   transition: all 0.2s;
   cursor: default !important;
 }
 
-.ldc-time-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.9);
+.ldc-time-btn:not(:disabled):is(:hover, :focus-visible) {
+  background: var(--ldc-hover-bg);
+  border-color: var(--ldc-hover-border);
+  color: var(--ldc-text);
 }
 
 .ldc-time-btn.active {
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--ldc-text);
 }
 
 .ldc-time-btn[data-time-of-day='morning'].active {
-  background: rgba(255, 223, 0, 0.3);
-  border-color: rgba(255, 223, 0, 0.5);
+  background: var(--ldc-morning-bg);
+  border-color: var(--ldc-morning-border);
 }
 
 .ldc-time-btn[data-time-of-day='afternoon'].active {
-  background: rgba(255, 140, 0, 0.3);
-  border-color: rgba(255, 140, 0, 0.5);
+  background: var(--ldc-afternoon-bg);
+  border-color: var(--ldc-afternoon-border);
 }
 
 .ldc-time-btn[data-time-of-day='latenight'].active {
-  background: rgba(100, 100, 255, 0.3);
-  border-color: rgba(100, 100, 255, 0.5);
+  background: var(--ldc-latenight-bg);
+  border-color: var(--ldc-latenight-border);
 }
 
 .ldc-time-btn i {
@@ -390,3 +396,72 @@
     rgba(10, 10, 30, 0.7) 75%
   );
 }
+
+/* Webfont CSS editor */
+/* Flatten only the extension group containing our API button into the right
+ * flex row. This lets the calendar follow extensions and legacy phone buttons
+ * without moving API-owned DOM or changing other extensions' relative order. */
+#lichsoma-taskbar .taskbar-right:has([data-taskbar-extension-id="lichsoma-daily-calendar"]) > #taskbar-extension-buttons {
+  display: contents;
+}
+
+#lichsoma-taskbar :is(#taskbar-daily-calendar-btn, [data-taskbar-extension-id="lichsoma-daily-calendar"]) {
+  order: 1;
+}
+
+/* Keep core taskbar actions and the clock after the calendar. */
+#lichsoma-taskbar .taskbar-right > :is(#taskbar-quest-btn, #taskbar-close-btn, #taskbar-settings-btn, #taskbar-invitations-btn, .taskbar-stats) {
+  order: 2;
+}
+
+.lichsoma-daily-calendar-css-editor .lichsoma-daily-calendar-css-editor-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0;
+}
+
+.lichsoma-daily-calendar-css-editor .lichsoma-daily-calendar-css-editor-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.lichsoma-daily-calendar-css-editor .lichsoma-daily-calendar-css-editor-main label {
+  margin-bottom: 0.35rem;
+  font-weight: 700;
+}
+
+.lichsoma-daily-calendar-css-editor textarea[name="css"] {
+  flex: 1 1 auto;
+  min-height: 400px;
+  resize: none;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.lichsoma-daily-calendar-css-editor .CodeMirror {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 400px;
+  font-size: 13px;
+  border: 1px solid var(--color-border-light-2);
+  border-radius: 3px;
+}
+
+.lichsoma-daily-calendar-css-editor .lichsoma-daily-calendar-css-editor-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-border-light-2);
+}
+
+.lichsoma-daily-calendar-css-editor .lichsoma-daily-calendar-css-editor-actions button {
+  flex: 1 1 0;
+}
+

@@ -1,0 +1,57 @@
+{
+  "LICHSOMA": {
+    "DAILY_CALENDAR": {
+      "SceneControlTitle": "Date/Time",
+      "NotifyGMOnly": "Only the GM can change the date and time.",
+      "EnableCalendar": "Enable Calendar",
+      "EnableCalendarHint": "When enabled, the calendar is displayed in the upper-left corner, and its date can be linked with LichSOMA's Taskbar.",
+      "BaseCalendarDate": "Base Calendar Date (YYYY/MM/DD)",
+      "BaseCalendarDateHint": "Enter the date corresponding to Day 1 using a four-digit year/month/day format. Example: 2000/01/01",
+      "Settings": {
+        "Theme": {
+          "Name": "Theme",
+          "Inherited": "Using Speaker Selector theme — theme is applied automatically.",
+          "Hint": "While Speaker Selector is active, its theme is inherited and this setting is locked. Otherwise, Simple follows Foundry's interface light/dark preference. Custom calendar webfonts are preserved.",
+          "Simple": "Simple",
+          "RetroTerminal": "Terminal Green",
+        "TerminalRed": "Terminal Red"
+        },
+        "WebfontCSS": {
+          "Title": "Calendar Webfont CSS",
+          "EditButton": "Edit Webfont CSS",
+          "CSSLabel": "CSS Code",
+          "Saved": "Calendar webfont CSS saved.",
+          "SaveFailed": "Failed to save calendar webfont CSS."
+        },
+        "CalendarWebfont": {
+          "Name": "Calendar Webfont",
+          "Hint": "Edit the webfont CSS used by the calendar widget. The first font-family, font-weight, font-style, and font-variation-settings declarations in the CSS are used."
+        }
+      },
+      "Panel": {
+        "Time": "Time",
+        "DayCount": "Day {day}",
+        "PrevDay": "Prev Day",
+        "NextDay": "Next Day",
+        "PrevTime": "Prev Time Period",
+        "NextTime": "Next Time Period",
+        "Morning": "Morn.",
+        "Afternoon": "Aft.",
+        "LateNight": "Ngt."
+      },
+      "Weekdays": {
+        "Sunday": "Sun.",
+        "Monday": "Mon.",
+        "Tuesday": "Tue.",
+        "Wednesday": "Wed.",
+        "Thursday": "Thu.",
+        "Friday": "Fri.",
+        "Saturday": "Sat."
+      },
+      "Common": {
+        "Save": "Save",
+        "Cancel": "Cancel"
+      }
+    }
+  }
+}
